@@ -4,8 +4,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Upload, Link as LinkIcon, X, Loader2 } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import api from "@/api/axios";
 import { useToast } from "@/hooks/use-toast";
+import { toast as sonnerToast } from "sonner";
 
 interface ImageUploadProps {
   value: string;
@@ -46,23 +47,17 @@ const ImageUpload = ({ value, onChange, disabled }: ImageUploadProps) => {
     setIsUploading(true);
 
     try {
-      const fileExt = file.name.split(".").pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`;
-      const filePath = `deals/${fileName}`;
+      const formData = new FormData();
+      formData.append("image", file);
 
-      const { error: uploadError } = await supabase.storage
-        .from("deal-images")
-        .upload(filePath, file);
+      const { data } = await api.post("/upload", formData, {
+        headers: { "Content-Type": "multipart/form-data" },
+      });
 
-      if (uploadError) throw uploadError;
-
-      const { data: urlData } = supabase.storage
-        .from("deal-images")
-        .getPublicUrl(filePath);
-
-      onChange(urlData.publicUrl);
-      setUrlInput(urlData.publicUrl);
-      toast({ title: "Success", description: "Image uploaded successfully" });
+      const publicUrl = `http://localhost:3001${data.imageUrl}`;
+      onChange(publicUrl);
+      setUrlInput(publicUrl);
+      sonnerToast.success("Image uploaded successfully");
     } catch (error: any) {
       toast({
         title: "Upload failed",
@@ -89,7 +84,7 @@ const ImageUpload = ({ value, onChange, disabled }: ImageUploadProps) => {
   return (
     <div className="space-y-4">
       <Label>Deal Image</Label>
-      
+
       {value && (
         <div className="relative w-full h-48 rounded-lg overflow-hidden bg-muted">
           <img
@@ -124,7 +119,7 @@ const ImageUpload = ({ value, onChange, disabled }: ImageUploadProps) => {
             URL
           </TabsTrigger>
         </TabsList>
-        
+
         <TabsContent value="upload" className="space-y-2">
           <input
             ref={fileInputRef}
@@ -157,7 +152,7 @@ const ImageUpload = ({ value, onChange, disabled }: ImageUploadProps) => {
             Max file size: 5MB. Supported formats: JPG, PNG, GIF, WebP
           </p>
         </TabsContent>
-        
+
         <TabsContent value="url" className="space-y-2">
           <div className="flex gap-2">
             <Input

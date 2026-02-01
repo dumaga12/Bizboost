@@ -2,13 +2,15 @@ import { useParams, Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Share2, ShoppingCart, MapPin, Clock, ArrowLeft, Loader2 } from "lucide-react";
+import { Share2, ShoppingCart, MapPin, Clock, ArrowLeft, Loader2, CheckCircle, ShieldCheck, Ticket } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
-import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import api from "@/api/axios";
 import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/contexts/AuthContext";
+import { useVerification, useClaims } from "@/hooks/useDeals";
 import { differenceInDays, parseISO, format } from "date-fns";
+import { toast } from "sonner";
 
 const DealDetail = () => {
   const { id } = useParams();
@@ -19,17 +21,14 @@ const DealDetail = () => {
   const { data: deal, isLoading, error } = useQuery({
     queryKey: ["deal", id],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("deals_with_details")
-        .select("*")
-        .eq("id", id)
-        .maybeSingle();
-
-      if (error) throw error;
+      const { data } = await api.get(`/deals/${id}`);
       return data;
     },
     enabled: !!id,
   });
+
+  const { data: verifications, verifyDeal } = useVerification(id || "");
+  const { claimDeal } = useClaims();
 
   const getExpiryText = (endDate: string, isPerpetual?: boolean): string => {
     if (isPerpetual) return "Never expires";
@@ -116,8 +115,8 @@ const DealDetail = () => {
           {/* Deal Image */}
           {deal.image_url && (
             <div className="h-64 overflow-hidden">
-              <img 
-                src={deal.image_url} 
+              <img
+                src={deal.image_url}
                 alt={deal.title || "Deal image"}
                 className="w-full h-full object-cover"
               />
@@ -133,17 +132,54 @@ const DealDetail = () => {
                 </div>
                 <h1 className="text-3xl font-bold mb-2 text-card-foreground">{deal.title}</h1>
                 <p className="text-lg text-muted-foreground">{deal.business_name}</p>
-                {deal.category_name && (
-                  <Badge variant="secondary" className="mt-2">{deal.category_name}</Badge>
-                )}
+
+                <div className="flex flex-wrap gap-2 mt-3 text-sm">
+                  {deal.category_name && (
+                    <Badge variant="secondary">{deal.category_name}</Badge>
+                  )}
+                  {verifications?.count > 0 && (
+                    <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50 flex gap-1">
+                      <ShieldCheck className="h-3 w-3" />
+                      Verified by {verifications.count} users
+                    </Badge>
+                  )}
+                </div>
               </div>
-              <Button size="icon" variant="outline" onClick={handleShare}>
-                <Share2 className="h-5 w-5" />
-              </Button>
+              <div className="flex flex-col gap-2">
+                <Button size="icon" variant="outline" onClick={handleShare}>
+                  <Share2 className="h-5 w-5" />
+                </Button>
+                <Button
+                  size="icon"
+                  variant="outline"
+                  className="text-green-600 border-green-200"
+                  onClick={() => verifyDeal.mutate()}
+                  title="Verify this deal works!"
+                >
+                  <CheckCircle className="h-5 w-5" />
+                </Button>
+              </div>
             </div>
           </CardHeader>
 
           <CardContent className="space-y-6">
+            {(deal as any).total_quantity && (
+              <div className="bg-muted/50 p-4 rounded-lg space-y-2">
+                <div className="flex justify-between items-center text-sm">
+                  <span className="font-semibold text-destructive flex items-center gap-1">
+                    <Clock className="h-4 w-4" />
+                    Hurry! Only {(deal as any).total_quantity - (deal as any).claimed_count} left
+                  </span>
+                  <span className="text-muted-foreground">{(deal as any).claimed_count} claimed</span>
+                </div>
+                <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-destructive transition-all"
+                    style={{ width: `${Math.min(100, ((deal as any).claimed_count / (deal as any).total_quantity) * 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
             <div>
               <h3 className="font-semibold text-lg mb-2 text-card-foreground">Description</h3>
               <p className="text-muted-foreground whitespace-pre-wrap">{deal.description}</p>
@@ -157,8 +193,8 @@ const DealDetail = () => {
                 <div className="flex items-center gap-3">
                   <Clock className="h-5 w-5 text-muted-foreground" />
                   <span className="text-muted-foreground">
-                    {(deal as any).is_perpetual 
-                      ? "This deal never expires" 
+                    {(deal as any).is_perpetual
+                      ? "This deal never expires"
                       : `Valid from ${format(parseISO(deal.start_date || ""), "MMM d, yyyy")} to ${format(parseISO(deal.end_date || ""), "MMM d, yyyy")}`
                     }
                   </span>
@@ -182,20 +218,28 @@ const DealDetail = () => {
               </>
             )}
 
-            <Button 
-              className="w-full" 
-              size="lg"
-              variant={inCart ? "secondary" : "default"}
-              onClick={handleAddToCart}
-              disabled={inCart || addToCart.isPending}
-            >
-              {addToCart.isPending ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
+            <div className="flex gap-2">
+              <Button
+                className="flex-1"
+                size="lg"
+                variant={inCart ? "secondary" : "default"}
+                onClick={handleAddToCart}
+                disabled={inCart || addToCart.isPending}
+              >
                 <ShoppingCart className="h-4 w-4 mr-2" />
-              )}
-              {inCart ? "Already in Cart" : "Add to Cart"}
-            </Button>
+                {inCart ? "In Cart" : "Add to Cart"}
+              </Button>
+              <Button
+                className="flex-1"
+                size="lg"
+                variant="destructive"
+                onClick={() => claimDeal.mutate(deal.id)}
+                disabled={claimDeal.isPending || ((deal as any).total_quantity && (deal as any).claimed_count >= (deal as any).total_quantity)}
+              >
+                {claimDeal.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Ticket className="h-4 w-4 mr-2" />}
+                Claim Deal
+              </Button>
+            </div>
           </CardContent>
         </Card>
       </div>

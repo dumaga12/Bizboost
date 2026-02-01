@@ -10,8 +10,9 @@ import { Switch } from "@/components/ui/switch";
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCategories } from "@/hooks/useDeals";
-import { supabase } from "@/integrations/supabase/client";
+import api from "@/api/axios";
 import { useToast } from "@/hooks/use-toast";
+import { toast as sonnerToast } from "sonner";
 import ImageUpload from "@/components/ImageUpload";
 
 const PostDealForm = () => {
@@ -19,7 +20,7 @@ const PostDealForm = () => {
   const { user, business, loading: authLoading } = useAuth();
   const { data: categories, isLoading: categoriesLoading } = useCategories();
   const { toast } = useToast();
-  
+
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [formData, setFormData] = useState({
     title: "",
@@ -70,28 +71,31 @@ const PostDealForm = () => {
     // For perpetual deals, set end_date far in the future
     const endDate = formData.is_perpetual ? "2099-12-31" : formData.end_date;
 
-    const { error } = await supabase.from("deals").insert({
-      business_id: business.id,
-      title: formData.title,
-      description: formData.description,
-      category_id: formData.category_id || null,
-      discount_type: formData.discount_type,
-      discount_value: formData.discount_value,
-      start_date: formData.start_date,
-      end_date: endDate,
-      terms_conditions: formData.terms_conditions || null,
-      image_url: formData.image_url || null,
-      status: status,
-      is_perpetual: formData.is_perpetual,
-    });
+    try {
+      await api.post("/deals", {
+        business_id: business.id,
+        title: formData.title,
+        description: formData.description,
+        category: formData.category_id || "General",
+        discount_type: formData.discount_type,
+        discount_value: formData.discount_value,
+        start_date: formData.start_date,
+        end_date: endDate,
+        terms_conditions: formData.terms_conditions || null,
+        image_url: formData.image_url || null,
+        status: status,
+        is_perpetual: formData.is_perpetual,
+        // Adding dummy prices for now to satisfy the model if needed, or making them optional in model
+        original_price: 0,
+        discount_price: 0,
+      });
 
-    setIsSubmitting(false);
-
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
-      toast({ title: "Success", description: status === "active" ? "Deal published!" : "Deal saved as draft" });
+      sonnerToast.success(status === "active" ? "Deal published!" : "Deal saved as draft");
       navigate("/business/dashboard");
+    } catch (error: any) {
+      sonnerToast.error(error.response?.data?.error || error.message);
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -124,9 +128,9 @@ const PostDealForm = () => {
           <CardContent className="space-y-6">
             <div className="space-y-2">
               <Label htmlFor="title">Deal Title *</Label>
-              <Input 
-                id="title" 
-                placeholder="e.g., 50% Off All Coffee Drinks" 
+              <Input
+                id="title"
+                placeholder="e.g., 50% Off All Coffee Drinks"
                 value={formData.title}
                 onChange={(e) => handleChange("title", e.target.value)}
               />
@@ -134,9 +138,9 @@ const PostDealForm = () => {
 
             <div className="space-y-2">
               <Label htmlFor="description">Description *</Label>
-              <Textarea 
-                id="description" 
-                placeholder="Describe your deal in detail..." 
+              <Textarea
+                id="description"
+                placeholder="Describe your deal in detail..."
                 rows={4}
                 value={formData.description}
                 onChange={(e) => handleChange("description", e.target.value)}
@@ -177,9 +181,9 @@ const PostDealForm = () => {
 
             <div className="space-y-2">
               <Label htmlFor="discount_value">Discount Value *</Label>
-              <Input 
-                id="discount_value" 
-                placeholder="e.g., 50% or $10 off" 
+              <Input
+                id="discount_value"
+                placeholder="e.g., 50% or $10 off"
                 value={formData.discount_value}
                 onChange={(e) => handleChange("discount_value", e.target.value)}
               />
@@ -187,9 +191,9 @@ const PostDealForm = () => {
 
             <div className="space-y-2">
               <Label htmlFor="start-date">Start Date *</Label>
-              <Input 
-                id="start-date" 
-                type="date" 
+              <Input
+                id="start-date"
+                type="date"
                 value={formData.start_date}
                 onChange={(e) => handleChange("start_date", e.target.value)}
               />
@@ -212,9 +216,9 @@ const PostDealForm = () => {
             {!formData.is_perpetual && (
               <div className="space-y-2">
                 <Label htmlFor="end-date">End Date *</Label>
-                <Input 
-                  id="end-date" 
-                  type="date" 
+                <Input
+                  id="end-date"
+                  type="date"
                   value={formData.end_date}
                   onChange={(e) => handleChange("end_date", e.target.value)}
                 />
@@ -223,9 +227,9 @@ const PostDealForm = () => {
 
             <div className="space-y-2">
               <Label htmlFor="terms">Terms & Conditions</Label>
-              <Textarea 
-                id="terms" 
-                placeholder="List any restrictions or requirements..." 
+              <Textarea
+                id="terms"
+                placeholder="List any restrictions or requirements..."
                 rows={3}
                 value={formData.terms_conditions}
                 onChange={(e) => handleChange("terms_conditions", e.target.value)}
@@ -239,16 +243,16 @@ const PostDealForm = () => {
             />
 
             <div className="flex gap-2 pt-4">
-              <Button 
-                className="flex-1" 
+              <Button
+                className="flex-1"
                 onClick={() => handleSubmit("active")}
                 disabled={isSubmitting}
               >
                 {isSubmitting ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : null}
                 Publish Deal
               </Button>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 onClick={() => handleSubmit("draft")}
                 disabled={isSubmitting}
               >

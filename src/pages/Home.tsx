@@ -1,12 +1,12 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Tag, TrendingUp, Loader2, ShoppingCart, LogOut, User } from "lucide-react";
+import { Search, Tag, TrendingUp, Loader2, ShoppingCart, LogOut, User, Heart, Star, Map as MapIcon, Ticket, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Link } from "react-router-dom";
-import { useTrendingDeals, useCategories } from "@/hooks/useDeals";
+import { useTrendingDeals, useCategories, useWishlist } from "@/hooks/useDeals";
 import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/contexts/AuthContext";
 import { differenceInDays, parseISO } from "date-fns";
@@ -18,6 +18,25 @@ const Home = () => {
   const { data: categories, isLoading: categoriesLoading } = useCategories();
   const { user, signOut } = useAuth();
   const { cartCount, addToCart, isInCart } = useCart();
+  const { addToWishlist, removeFromWishlist, data: wishlist } = useWishlist();
+
+  const isWishlisted = (dealId: string) => {
+    return wishlist?.some((item: any) => item.deal_id === String(dealId));
+  };
+
+  const handleWishlist = (e: React.MouseEvent, dealId: string) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!user) {
+      navigate("/customer/login");
+      return;
+    }
+    if (isWishlisted(dealId)) {
+      removeFromWishlist.mutate(dealId);
+    } else {
+      addToWishlist.mutate(dealId);
+    }
+  };
 
   const getExpiryText = (endDate: string, isPerpetual?: boolean): string => {
     if (isPerpetual) return "Never expires";
@@ -55,8 +74,19 @@ const Home = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-foreground">BizBoost</h1>
           <nav className="flex items-center gap-4">
+            <Link to="/customer/map">
+              <Button variant="ghost" className="hidden md:flex">
+                <MapIcon className="h-4 w-4 mr-2" />
+                Near Me
+              </Button>
+            </Link>
             <Link to="/browse">
               <Button variant="ghost">Browse Deals</Button>
+            </Link>
+            <Link to="/customer/claims">
+              <Button variant="ghost" size="icon">
+                <Ticket className="h-5 w-5" />
+              </Button>
             </Link>
             <Link to="/customer/cart" className="relative">
               <Button variant="ghost" size="icon">
@@ -70,6 +100,10 @@ const Home = () => {
             </Link>
             {user ? (
               <>
+                <div className="flex items-center gap-1 bg-primary/10 px-3 py-1 rounded-full text-primary font-bold text-sm">
+                  <Coins className="h-4 w-4" />
+                  <span>{(user as any).points || 0}</span>
+                </div>
                 <Button variant="ghost" size="icon" onClick={() => signOut()}>
                   <LogOut className="h-5 w-5" />
                 </Button>
@@ -94,14 +128,14 @@ const Home = () => {
         <div className="container mx-auto px-4 text-center">
           <h2 className="text-5xl font-bold mb-4">Find Amazing Deals Near You</h2>
           <p className="text-xl mb-8 text-primary-foreground/80">Discover exclusive offers from local businesses</p>
-          
+
           {/* Search Bar */}
           <div className="max-w-2xl mx-auto">
             <div className="flex gap-2">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-                <Input 
-                  placeholder="Search for deals, businesses, or categories..." 
+                <Input
+                  placeholder="Search for deals, businesses, or categories..."
                   className="pl-10 h-12 bg-background"
                   value={searchInput}
                   onChange={(e) => setSearchInput(e.target.value)}
@@ -142,7 +176,7 @@ const Home = () => {
           <TrendingUp className="h-6 w-6 text-primary" />
           <h3 className="text-3xl font-bold text-foreground">Trending Deals</h3>
         </div>
-        
+
         {dealsLoading ? (
           <div className="flex justify-center py-12">
             <Loader2 className="h-8 w-8 animate-spin" />
@@ -154,8 +188,8 @@ const Home = () => {
                 <Card className="hover:shadow-lg transition-shadow cursor-pointer overflow-hidden h-full">
                   <div className="h-40 overflow-hidden bg-muted">
                     {deal.image_url ? (
-                      <img 
-                        src={deal.image_url} 
+                      <img
+                        src={deal.image_url}
                         alt={deal.title}
                         className="w-full h-full object-cover transition-transform hover:scale-105"
                       />
@@ -167,8 +201,24 @@ const Home = () => {
                   </div>
                   <CardHeader className="pt-3">
                     <div className="flex items-start justify-between">
-                      <Badge className="bg-destructive text-destructive-foreground">{deal.discount_value}</Badge>
-                      <Badge variant="outline">{getExpiryText(deal.end_date, (deal as any).is_perpetual)}</Badge>
+                      <div className="flex flex-col gap-1">
+                        <Badge className="bg-destructive text-destructive-foreground">{deal.discount_value}</Badge>
+                        <div className="flex items-center text-yellow-500 text-xs mt-1">
+                          <Star className="h-3 w-3 fill-current mr-1" />
+                          <span>4.5</span>
+                        </div>
+                      </div>
+                      <div className="flex flex-col items-end gap-1">
+                        <Badge variant="outline">{getExpiryText(deal.end_date, (deal as any).is_perpetual)}</Badge>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          onClick={(e) => handleWishlist(e, deal.id)}
+                        >
+                          <Heart className={`h-5 w-5 ${isWishlisted(deal.id) ? "fill-destructive text-destructive" : ""}`} />
+                        </Button>
+                      </div>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -177,9 +227,24 @@ const Home = () => {
                     {deal.category_name && (
                       <Badge variant="secondary" className="mt-2">{deal.category_name}</Badge>
                     )}
+
+                    {(deal as any).total_quantity && (
+                      <div className="mt-4 space-y-1">
+                        <div className="flex justify-between text-xs text-muted-foreground">
+                          <span>{(deal as any).claimed_count} claimed</span>
+                          <span>{(deal as any).total_quantity - (deal as any).claimed_count} left</span>
+                        </div>
+                        <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary transition-all"
+                            style={{ width: `${Math.min(100, ((deal as any).claimed_count / (deal as any).total_quantity) * 100)}%` }}
+                          />
+                        </div>
+                      </div>
+                    )}
                   </CardContent>
                   <CardFooter className="gap-2">
-                    <Button 
+                    <Button
                       className="flex-1"
                       variant={isInCart(deal.id) ? "secondary" : "default"}
                       onClick={(e) => handleAddToCart(e, deal.id)}
