@@ -92,7 +92,7 @@ const Home = () => {
       {/* Hero Section */}
       <section className="bg-primary text-primary-foreground py-20">
         <div className="container mx-auto px-4 text-center">
-          <h2 className="text-5xl font-bold mb-4">Find Amazing Deals Near You</h2>
+          <h2 className="text-5xl font-bold mb-4">Find Amazing Business products and services Near You</h2>
           <p className="text-xl mb-8 text-primary-foreground/80">Discover exclusive offers from local businesses</p>
           
           {/* Search Bar */}

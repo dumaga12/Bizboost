@@ -1,4 +1,4 @@
--- Fix security issue 1: Update view to use security_invoker
+
 DROP VIEW IF EXISTS public.deals_with_details;
 
 CREATE VIEW public.deals_with_details 

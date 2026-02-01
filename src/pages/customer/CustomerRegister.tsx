@@ -7,10 +7,10 @@ import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle }
 import { ArrowLeft, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { registerCustomer } from "@/services/authService";
 
 const CustomerRegister = () => {
   const navigate = useNavigate();
+  const { signUp } = useAuth();
   const { toast } = useToast();
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
@@ -18,58 +18,54 @@ const CustomerRegister = () => {
   const [confirmPassword, setConfirmPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
-const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!name || !email || !password || !confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Please fill in all fields",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  if (!name || !email || !password || !confirmPassword) {
-    toast({
-      title: "Error",
-      description: "Please fill in all fields",
-      variant: "destructive",
-    });
-    return;
-  }
+    if (password !== confirmPassword) {
+      toast({
+        title: "Error",
+        description: "Passwords do not match",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  if (password !== confirmPassword) {
-    toast({
-      title: "Error",
-      description: "Passwords do not match",
-      variant: "destructive",
-    });
-    return;
-  }
+    if (password.length < 6) {
+      toast({
+        title: "Error",
+        description: "Password must be at least 6 characters",
+        variant: "destructive",
+      });
+      return;
+    }
 
-  if (password.length < 6) {
-    toast({
-      title: "Error",
-      description: "Password must be at least 6 characters",
-      variant: "destructive",
-    });
-    return;
-  }
-
-  setIsLoading(true);
-  try {
-    const response = await registerCustomer({ name, email, password });
-    console.log("API response:", response.data);
-
-    toast({
-      title: "Account created!",
-      description: "You can now sign in to your account",
-    });
-    navigate("/customer/login");
-  } catch (err) {
-    console.error(err);
-    toast({
-      title: "Registration failed",
-      description: err.response?.data?.message || "Server error",
-      variant: "destructive",
-    });
-  } finally {
+    setIsLoading(true);
+    const { error } = await signUp(email, password);
     setIsLoading(false);
-  }
-};
 
+    if (error) {
+      toast({
+        title: "Registration failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Account created!",
+        description: "You can now sign in to your account",
+      });
+      navigate("/customer/login");
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background flex items-center justify-center p-4">
