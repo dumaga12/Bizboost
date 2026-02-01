@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import api from "@/api/axios";
 import { useAuth } from "@/contexts/AuthContext";
-import { useToast } from "@/hooks/use-toast";
+import { toast } from "sonner";
 
 export interface CartItem {
   id: string;
@@ -30,33 +30,8 @@ export const useCart = () => {
     queryKey: ["cart", user?.id],
     queryFn: async () => {
       if (!user) return [];
-
-      const { data: cartItems, error } = await supabase
-        .from("cart_items")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("added_at", { ascending: false });
-
-      if (error) throw error;
-
-      // Fetch deal details for each cart item
-      if (cartItems && cartItems.length > 0) {
-        const dealIds = cartItems.map((item) => item.deal_id);
-        const { data: deals, error: dealsError } = await supabase
-          .from("deals_with_details")
-          .select("id, title, description, discount_value, image_url, business_name, end_date, is_perpetual")
-          .in("id", dealIds);
-
-        if (dealsError) throw dealsError;
-
-        const dealsMap = new Map(deals?.map((d) => [d.id, d]));
-        return cartItems.map((item) => ({
-          ...item,
-          deal: dealsMap.get(item.deal_id),
-        })) as CartItem[];
-      }
-
-      return cartItems as CartItem[];
+      const { data } = await api.get("/cart");
+      return data as CartItem[];
     },
     enabled: !!user,
   });
@@ -64,100 +39,49 @@ export const useCart = () => {
   const addToCart = useMutation({
     mutationFn: async (dealId: string) => {
       if (!user) throw new Error("Must be logged in to add to cart");
-
-      const { error } = await supabase.from("cart_items").upsert(
-        {
-          user_id: user.id,
-          deal_id: dealId,
-          quantity: 1,
-        },
-        { onConflict: "user_id,deal_id" }
-      );
-
-      if (error) throw error;
+      const { data } = await api.post("/cart", { deal_id: dealId, quantity: 1 });
+      return data;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cart", user?.id] });
-      toast({ title: "Added to cart", description: "Deal added to your cart" });
+      toast.success("Added to cart");
     },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+    onError: (error: any) => {
+      toast.error(error.message || "Failed to add to cart");
     },
   });
 
   const removeFromCart = useMutation({
     mutationFn: async (cartItemId: string) => {
-      const { error } = await supabase
-        .from("cart_items")
-        .delete()
-        .eq("id", cartItemId);
-
-      if (error) throw error;
+      await api.delete(`/cart/${cartItemId}`);
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cart", user?.id] });
-      toast({ title: "Removed", description: "Deal removed from cart" });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.success("Removed from cart");
     },
   });
 
   const updateQuantity = useMutation({
     mutationFn: async ({ cartItemId, quantity }: { cartItemId: string; quantity: number }) => {
-      const { error } = await supabase
-        .from("cart_items")
-        .update({ quantity })
-        .eq("id", cartItemId);
-
-      if (error) throw error;
+      await api.put(`/cart/${cartItemId}`, { quantity });
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cart", user?.id] });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
     },
   });
 
   const clearCart = useMutation({
     mutationFn: async () => {
-      if (!user) throw new Error("Must be logged in");
-
-      const { error } = await supabase
-        .from("cart_items")
-        .delete()
-        .eq("user_id", user.id);
-
-      if (error) throw error;
+      await api.delete("/cart/clear");
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["cart", user?.id] });
-      toast({ title: "Cart cleared", description: "All items removed from cart" });
-    },
-    onError: (error) => {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
+      toast.success("Cart cleared");
     },
   });
 
   const isInCart = (dealId: string) => {
-    return cartQuery.data?.some((item) => item.deal_id === dealId) ?? false;
+    return cartQuery.data?.some((item) => item.deal_id === String(dealId)) ?? false;
   };
 
   return {
