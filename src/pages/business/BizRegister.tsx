@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import api from "@/api/axios";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,6 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Check, Loader2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
+<<<<<<< HEAD
+=======
+import { useAuth } from "@/contexts/AuthContext";
+>>>>>>> de0c80683a03b59c4d843bd00c59fbfd1c9745bd
 import { useToast } from "@/hooks/use-toast";
 
 const BizRegister = () => {
@@ -52,6 +57,10 @@ const BizRegister = () => {
       toast({ title: "Error", description: "Please enter a password", variant: "destructive" });
       return;
     }
+<<<<<<< HEAD
+=======
+
+>>>>>>> de0c80683a03b59c4d843bd00c59fbfd1c9745bd
     if (formData.password !== formData.confirmPassword) {
       toast({ title: "Error", description: "Passwords do not match", variant: "destructive" });
       return;
@@ -63,6 +72,7 @@ const BizRegister = () => {
 
     setIsLoading(true);
 
+<<<<<<< HEAD
     try {
       const res = await fetch(`${import.meta.env.VITE_API_URL}/business/register`, {
         method: "POST",
@@ -78,6 +88,13 @@ const BizRegister = () => {
       });
 
       const data = await res.json();
+=======
+    // 1. Sign up the user
+    // The signUp function from AuthContext expects (email, password, name)
+    const { error: signUpError } = await signUp(formData.email, formData.password, formData.businessName);
+
+    if (signUpError) {
+>>>>>>> de0c80683a03b59c4d843bd00c59fbfd1c9745bd
       setIsLoading(false);
 
       if (!res.ok) {
@@ -85,12 +102,52 @@ const BizRegister = () => {
         return;
       }
 
+<<<<<<< HEAD
       toast({ title: "Success", description: "Business registered successfully!" });
       navigate("/business/dashboard");
     } catch (error: any) {
       setIsLoading(false);
       toast({ title: "Error", description: error.message || "Something went wrong", variant: "destructive" });
     }
+=======
+    // 2. Create the business profile
+    // Note: The backend registration endpoint likely handles user creation + business profile creation
+    // If not, we should have a dedicated endpoint for this.
+    // Assuming /auth/register creates the user, we then need to create the business profile.
+
+    // However, if the user is already logged in (from step 1), we can just create the business.
+    // Let's assume the user is logged in automatically or we rely on the auth context user.
+
+    if (!user) {
+      // If signUp didn't automatically login or set user context immediately, we might need to wait or manual login.
+      // But let's try to create the business profile associated with the current user context if available
+      // OR, better yet, the previous signUp call should have handled it.
+
+      // Looking at AuthContext, signUp just calls /auth/register.
+      // We might need to call a separate endpoint to register the business details.
+      setIsLoading(false);
+      toast({ title: "Error", description: "User not found after registration. Please try again.", variant: "destructive" });
+      return;
+    }
+
+    try {
+      await api.post("/businesses", {
+        business_name: formData.businessName,
+        phone: formData.phone,
+        address: formData.address,
+        description: formData.description,
+        user_id: user?.id // or handle if user is not yet set in context
+      });
+    } catch (bizError: any) {
+      setIsLoading(false);
+      toast({ title: "Error", description: bizError.response?.data?.message || bizError.message, variant: "destructive" });
+      return;
+    }
+
+    setIsLoading(false);
+    toast({ title: "Success", description: "Business registered successfully!" });
+    navigate("/business/dashboard");
+>>>>>>> de0c80683a03b59c4d843bd00c59fbfd1c9745bd
   };
 
   return (
@@ -108,6 +165,10 @@ const BizRegister = () => {
             <CardTitle className="text-2xl">Register Your Business</CardTitle>
             <CardDescription>Step {step} of 3</CardDescription>
 
+<<<<<<< HEAD
+=======
+            { }
+>>>>>>> de0c80683a03b59c4d843bd00c59fbfd1c9745bd
             <div className="flex items-center gap-2 mt-4">
               <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
                 {step > 1 ? <Check className="h-4 w-4" /> : '1'}
@@ -128,29 +189,29 @@ const BizRegister = () => {
               <>
                 <div className="space-y-2">
                   <Label htmlFor="business-name">Business Name</Label>
-                  <Input 
-                    id="business-name" 
-                    placeholder="Your Business Name" 
+                  <Input
+                    id="business-name"
+                    placeholder="Your Business Name"
                     value={formData.businessName}
                     onChange={(e) => handleChange("businessName", e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="business-email">Business Email</Label>
-                  <Input 
-                    id="business-email" 
-                    type="email" 
-                    placeholder="contact@yourbusiness.com" 
+                  <Input
+                    id="business-email"
+                    type="email"
+                    placeholder="contact@yourbusiness.com"
                     value={formData.email}
                     onChange={(e) => handleChange("email", e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">Phone Number</Label>
-                  <Input 
-                    id="phone" 
-                    type="tel" 
-                    placeholder="(234)09093097369" 
+                  <Input
+                    id="phone"
+                    type="tel"
+                    placeholder="(234)09093097369"
                     value={formData.phone}
                     onChange={(e) => handleChange("phone", e.target.value)}
                   />
@@ -162,18 +223,24 @@ const BizRegister = () => {
               <>
                 <div className="space-y-2">
                   <Label htmlFor="address">Business Address</Label>
+<<<<<<< HEAD
                   <Input 
                     id="address" 
                     placeholder="eg wuse2, okocha close, plot 1" 
+=======
+                  <Input
+                    id="address"
+                    placeholder="eg wuse2, okocha close, plot 1 "
+>>>>>>> de0c80683a03b59c4d843bd00c59fbfd1c9745bd
                     value={formData.address}
                     onChange={(e) => handleChange("address", e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="description">Business Description</Label>
-                  <Textarea 
-                    id="description" 
-                    placeholder="Tell customers about your business..." 
+                  <Textarea
+                    id="description"
+                    placeholder="Tell customers about your business..."
                     rows={4}
                     value={formData.description}
                     onChange={(e) => handleChange("description", e.target.value)}
@@ -186,25 +253,25 @@ const BizRegister = () => {
               <>
                 <div className="space-y-2">
                   <Label htmlFor="password">Password</Label>
-                  <Input 
-                    id="password" 
-                    type="password" 
+                  <Input
+                    id="password"
+                    type="password"
                     value={formData.password}
                     onChange={(e) => handleChange("password", e.target.value)}
                   />
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="confirm-password">Confirm Password</Label>
-                  <Input 
-                    id="confirm-password" 
-                    type="password" 
+                  <Input
+                    id="confirm-password"
+                    type="password"
                     value={formData.confirmPassword}
                     onChange={(e) => handleChange("confirmPassword", e.target.value)}
                   />
                 </div>
                 <div className="bg-muted p-4 rounded-lg">
                   <p className="text-sm text-muted-foreground">
-                    By registering, you agree to our Terms of Service and Privacy Policy. 
+                    By registering, you agree to our Terms of Service and Privacy Policy.
                     Your business will be reviewed by our team before approval.
                   </p>
                 </div>

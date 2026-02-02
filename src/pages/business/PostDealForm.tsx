@@ -11,6 +11,7 @@ import { ArrowLeft, Loader2 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useCategories } from "@/hooks/useDeals";
 import api from "@/api/axios";
+import { AxiosError } from "axios";
 import { useToast } from "@/hooks/use-toast";
 import { toast as sonnerToast } from "sonner";
 import ImageUpload from "@/components/ImageUpload";
@@ -92,7 +93,8 @@ const PostDealForm = () => {
 
       sonnerToast.success(status === "active" ? "Deal published!" : "Deal saved as draft");
       navigate("/business/dashboard");
-    } catch (error: any) {
+    } catch (err: unknown) {
+      const error = err as AxiosError<{ error: string }>;
       sonnerToast.error(error.response?.data?.error || error.message);
     } finally {
       setIsSubmitting(false);
