@@ -77,7 +77,6 @@ const BizRegister = () => {
     setIsLoading(true);
 
     // 1. Sign up the user
-    // The signUp function from AuthContext expects (email, password, name)
     const { error: signUpError } = await signUp(formData.email, formData.password, formData.businessName);
 
     if (signUpError) {
@@ -86,36 +85,29 @@ const BizRegister = () => {
       return;
     }
 
-    // Wait a moment for auth state to update
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    // 2. Sign in immediately to get the token and user ID
+    const { error: signInError } = await useAuth().signIn(formData.email, formData.password);
 
-    // 2. Create the business profile
-    // Note: The backend registration endpoint likely handles user creation + business profile creation
-    // If not, we should have a dedicated endpoint for this.
-    // Assuming /auth/register creates the user, we then need to create the business profile.
-
-    // However, if the user is already logged in (from step 1), we can just create the business.
-    // Let's assume the user is logged in automatically or we rely on the auth context user.
-
-    if (!user) {
-      // If signUp didn't automatically login or set user context immediately, we might need to wait or manual login.
-      // But let's try to create the business profile associated with the current user context if available
-      // OR, better yet, the previous signUp call should have handled it.
-
-      // Looking at AuthContext, signUp just calls /auth/register.
-      // We might need to call a separate endpoint to register the business details.
+    if (signInError) {
       setIsLoading(false);
-      toast({ title: "Error", description: "User not found after registration. Please try again.", variant: "destructive" });
+      toast({ title: "Error", description: "Registration successful, but failed to log in. Please log in manually.", variant: "destructive" });
+      navigate("/business/login");
       return;
     }
 
+    // Wait a moment for auth state to update
+    await new Promise(resolve => setTimeout(resolve, 500));
+
+    // 2. Create the business profile
+    // Since we are authenticated via the token we just got from signIn, 
+    // the backend will identify us using req.user.id.
+
     try {
-      await api.post("/businesses", {
+      await api.post("/business", {
         business_name: formData.businessName,
         phone: formData.phone,
         address: formData.address,
         description: formData.description,
-        user_id: user?.id // or handle if user is not yet set in context
       });
     } catch (bizError: any) {
       setIsLoading(false);
