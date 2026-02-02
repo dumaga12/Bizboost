@@ -6,11 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Eye, TrendingUp, Plus, Edit, Trash2, Loader2, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-<<<<<<< HEAD
-=======
 import { useBusinessDeals, Deal } from "@/hooks/useDeals";
 import api from "@/api/axios";
->>>>>>> de0c80683a03b59c4d843bd00c59fbfd1c9745bd
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
@@ -48,22 +45,11 @@ const BizDashboard = () => {
 
   const handleDelete = async (dealId: string) => {
     try {
-<<<<<<< HEAD
-      const res = await fetch(`${import.meta.env.VITE_API_URL}/deals/${dealId}`, {
-        method: "DELETE",
-      });
-      if (!res.ok) throw new Error("Failed to delete deal");
-      toast({ title: "Success", description: "Deal deleted" });
-      queryClient.invalidateQueries({ queryKey: ["business-deals", business?.id] });
-    } catch (err: any) {
-      toast({ title: "Error", description: err.message, variant: "destructive" });
-=======
       await api.delete(`/deals/${dealId}`);
       toast({ title: "Success", description: "Deal deleted" });
       queryClient.invalidateQueries({ queryKey: ["business-deals"] });
     } catch (error: any) {
       toast({ title: "Error", description: error.response?.data?.error || error.message, variant: "destructive" });
->>>>>>> de0c80683a03b59c4d843bd00c59fbfd1c9745bd
     }
   };
 
@@ -96,10 +82,7 @@ const BizDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-<<<<<<< HEAD
-=======
       { }
->>>>>>> de0c80683a03b59c4d843bd00c59fbfd1c9745bd
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div>
@@ -122,10 +105,7 @@ const BizDashboard = () => {
       </header>
 
       <div className="container mx-auto px-4 py-8">
-<<<<<<< HEAD
-=======
         { }
->>>>>>> de0c80683a03b59c4d843bd00c59fbfd1c9745bd
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {stats.map(stat => (
             <Card key={stat.label}>
@@ -140,10 +120,7 @@ const BizDashboard = () => {
           ))}
         </div>
 
-<<<<<<< HEAD
-=======
         { }
->>>>>>> de0c80683a03b59c4d843bd00c59fbfd1c9745bd
         <Card>
           <CardHeader>
             <CardTitle>Your Deals</CardTitle>
