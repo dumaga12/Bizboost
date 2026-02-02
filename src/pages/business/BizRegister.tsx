@@ -6,15 +6,12 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { ArrowLeft, Check, Loader2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
-import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 const BizRegister = () => {
   const navigate = useNavigate();
-  const { signUp, user, business, loading: authLoading } = useAuth();
   const { toast } = useToast();
-  
+
   const [step, setStep] = useState(1);
   const [isLoading, setIsLoading] = useState(false);
   const [formData, setFormData] = useState({
@@ -26,12 +23,6 @@ const BizRegister = () => {
     password: "",
     confirmPassword: "",
   });
-
-  useEffect(() => {
-    if (!authLoading && user && business) {
-      navigate("/business/dashboard");
-    }
-  }, [user, business, authLoading, navigate]);
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -53,9 +44,7 @@ const BizRegister = () => {
   };
 
   const handleNext = () => {
-    if (validateStep(step)) {
-      setStep(step + 1);
-    }
+    if (validateStep(step)) setStep(step + 1);
   };
 
   const handleSubmit = async () => {
@@ -63,12 +52,10 @@ const BizRegister = () => {
       toast({ title: "Error", description: "Please enter a password", variant: "destructive" });
       return;
     }
-    
     if (formData.password !== formData.confirmPassword) {
       toast({ title: "Error", description: "Passwords do not match", variant: "destructive" });
       return;
     }
-
     if (formData.password.length < 6) {
       toast({ title: "Error", description: "Password must be at least 6 characters", variant: "destructive" });
       return;
@@ -76,45 +63,34 @@ const BizRegister = () => {
 
     setIsLoading(true);
 
-    // 1. Sign up the user
-    const { error: signUpError } = await signUp(formData.email, formData.password);
-    
-    if (signUpError) {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/business/register`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          business_name: formData.businessName,
+          email: formData.email,
+          phone: formData.phone,
+          address: formData.address,
+          description: formData.description,
+          password: formData.password,
+        }),
+      });
+
+      const data = await res.json();
       setIsLoading(false);
-      toast({ title: "Error", description: signUpError.message, variant: "destructive" });
-      return;
-    }
 
-    // Wait a moment for auth state to update
-    await new Promise(resolve => setTimeout(resolve, 1000));
+      if (!res.ok) {
+        toast({ title: "Error", description: data.message || "Failed to register business", variant: "destructive" });
+        return;
+      }
 
-    // Get current user
-    const { data: { user: currentUser } } = await supabase.auth.getUser();
-    
-    if (!currentUser) {
+      toast({ title: "Success", description: "Business registered successfully!" });
+      navigate("/business/dashboard");
+    } catch (error: any) {
       setIsLoading(false);
-      toast({ title: "Error", description: "Failed to create account", variant: "destructive" });
-      return;
+      toast({ title: "Error", description: error.message || "Something went wrong", variant: "destructive" });
     }
-
-    // 2. Create the business profile
-    const { error: bizError } = await supabase.from("businesses").insert({
-      user_id: currentUser.id,
-      business_name: formData.businessName,
-      phone: formData.phone,
-      address: formData.address,
-      description: formData.description,
-    });
-
-    setIsLoading(false);
-
-    if (bizError) {
-      toast({ title: "Error", description: bizError.message, variant: "destructive" });
-      return;
-    }
-
-    toast({ title: "Success", description: "Business registered successfully!" });
-    navigate("/business/dashboard");
   };
 
   return (
@@ -131,8 +107,7 @@ const BizRegister = () => {
           <CardHeader>
             <CardTitle className="text-2xl">Register Your Business</CardTitle>
             <CardDescription>Step {step} of 3</CardDescription>
-            
-            {}
+
             <div className="flex items-center gap-2 mt-4">
               <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
                 {step > 1 ? <Check className="h-4 w-4" /> : '1'}
@@ -189,7 +164,7 @@ const BizRegister = () => {
                   <Label htmlFor="address">Business Address</Label>
                   <Input 
                     id="address" 
-                    placeholder="eg wuse2, okocha close, plot 1 " 
+                    placeholder="eg wuse2, okocha close, plot 1" 
                     value={formData.address}
                     onChange={(e) => handleChange("address", e.target.value)}
                   />

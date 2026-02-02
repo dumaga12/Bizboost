@@ -6,36 +6,51 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Eye, TrendingUp, Plus, Edit, Trash2, Loader2, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { useBusinessDeals, Deal } from "@/hooks/useDeals";
-import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
-import { useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
+
+interface Deal {
+  id: string;
+  title: string;
+  status: "active" | "draft" | "expired";
+  view_count: number;
+  end_date: string;
+}
+
+const fetchDeals = async (businessId: string) => {
+  const res = await fetch(`${import.meta.env.VITE_API_URL}/business/${businessId}/deals`);
+  if (!res.ok) throw new Error("Failed to fetch deals");
+  return res.json() as Promise<Deal[]>;
+};
 
 const BizDashboard = () => {
   const navigate = useNavigate();
   const { user, business, loading: authLoading, signOut } = useAuth();
-  const { data: deals, isLoading: dealsLoading } = useBusinessDeals(business?.id);
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
+  const { data: deals, isLoading: dealsLoading } = useQuery({
+    queryKey: ["business-deals", business?.id],
+    queryFn: () => fetchDeals(business!.id),
+    enabled: !!business,
+  });
+
   useEffect(() => {
-    if (!authLoading && !user) {
-      navigate("/business/login");
-    }
-    if (!authLoading && user && !business) {
-      navigate("/business/register");
-    }
+    if (!authLoading && !user) navigate("/business/login");
+    if (!authLoading && user && !business) navigate("/business/register");
   }, [user, business, authLoading, navigate]);
 
   const handleDelete = async (dealId: string) => {
-    const { error } = await supabase.from("deals").delete().eq("id", dealId);
-    
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      const res = await fetch(`${import.meta.env.VITE_API_URL}/deals/${dealId}`, {
+        method: "DELETE",
+      });
+      if (!res.ok) throw new Error("Failed to delete deal");
       toast({ title: "Success", description: "Deal deleted" });
-      queryClient.invalidateQueries({ queryKey: ["business-deals"] });
+      queryClient.invalidateQueries({ queryKey: ["business-deals", business?.id] });
+    } catch (err: any) {
+      toast({ title: "Error", description: err.message, variant: "destructive" });
     }
   };
 
@@ -68,39 +83,33 @@ const BizDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {}
       <header className="border-b border-border bg-card">
-        <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">Business Dashboard</h1>
-              <p className="text-sm text-muted-foreground">{business?.business_name}</p>
-            </div>
-            <div className="flex items-center gap-2">
-              <Link to="/business/deals/new">
-                <Button>
-                  <Plus className="h-4 w-4 mr-2" />
-                  Post New Deal
-                </Button>
-              </Link>
-              <Button variant="outline" onClick={handleLogout}>
-                <LogOut className="h-4 w-4 mr-2" />
-                Logout
+        <div className="container mx-auto px-4 py-4 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Business Dashboard</h1>
+            <p className="text-sm text-muted-foreground">{business?.business_name}</p>
+          </div>
+          <div className="flex items-center gap-2">
+            <Link to="/business/deals/new">
+              <Button>
+                <Plus className="h-4 w-4 mr-2" />
+                Post New Deal
               </Button>
-            </div>
+            </Link>
+            <Button variant="outline" onClick={handleLogout}>
+              <LogOut className="h-4 w-4 mr-2" />
+              Logout
+            </Button>
           </div>
         </div>
       </header>
 
       <div className="container mx-auto px-4 py-8">
-        {}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
-          {stats.map((stat) => (
+          {stats.map(stat => (
             <Card key={stat.label}>
               <CardHeader className="flex flex-row items-center justify-between pb-2">
-                <CardTitle className="text-sm font-medium text-muted-foreground">
-                  {stat.label}
-                </CardTitle>
+                <CardTitle className="text-sm font-medium text-muted-foreground">{stat.label}</CardTitle>
                 <stat.icon className="h-4 w-4 text-muted-foreground" />
               </CardHeader>
               <CardContent>
@@ -110,7 +119,6 @@ const BizDashboard = () => {
           ))}
         </div>
 
-        {}
         <Card>
           <CardHeader>
             <CardTitle>Your Deals</CardTitle>
@@ -132,13 +140,11 @@ const BizDashboard = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {deals.map((deal) => (
+                  {deals.map(deal => (
                     <TableRow key={deal.id}>
                       <TableCell className="font-medium">{deal.title}</TableCell>
                       <TableCell>
-                        <Badge variant={getStatusColor(deal)}>
-                          {deal.status}
-                        </Badge>
+                        <Badge variant={getStatusColor(deal)}>{deal.status}</Badge>
                       </TableCell>
                       <TableCell>{deal.view_count}</TableCell>
                       <TableCell>{format(parseISO(deal.end_date), "MMM d, yyyy")}</TableCell>
