@@ -1,14 +1,18 @@
+import { useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
+
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Share2, ShoppingCart, MapPin, Clock, ArrowLeft, Loader2, CheckCircle, ShieldCheck, Ticket } from "lucide-react";
+import { Share2, ShoppingCart, MapPin, Clock, ArrowLeft, Loader2, CheckCircle, ShieldCheck, Ticket, Star } from "lucide-react";
 import { Separator } from "@/components/ui/separator";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import api from "@/api/axios";
 import { useCart } from "@/hooks/useCart";
 import { useAuth } from "@/contexts/AuthContext";
-import { useVerification, useClaims } from "@/hooks/useDeals";
+import { useVerification, useClaims, useRatings } from "@/hooks/useDeals";
+import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { differenceInDays, parseISO, format } from "date-fns";
 import { toast } from "sonner";
 
@@ -29,6 +33,11 @@ const DealDetail = () => {
 
   const { data: verifications, verifyDeal } = useVerification(id || "");
   const { claimDeal } = useClaims();
+  const { data: ratings, addRating } = useRatings(deal?.business_id || "");
+
+  const [userRating, setUserRating] = useState(5);
+  const [userComment, setUserComment] = useState("");
+  const [isSubmittingReview, setIsSubmittingReview] = useState(false);
 
   const getExpiryText = (endDate: string, isPerpetual?: boolean): string => {
     if (isPerpetual) return "Never expires";
@@ -61,6 +70,27 @@ const DealDetail = () => {
       navigator.clipboard.writeText(window.location.href);
     }
   };
+
+  const handleReviewSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!user) {
+      toast.error("Please login to write a review");
+      return;
+    }
+    setIsSubmittingReview(true);
+    addRating.mutate({
+      business_id: deal.business_id,
+      rating: userRating,
+      comment: userComment
+    }, {
+      onSuccess: () => {
+        setUserComment("");
+        setIsSubmittingReview(false);
+      },
+      onError: () => setIsSubmittingReview(false)
+    });
+  };
+
 
   if (isLoading) {
     return (
@@ -128,7 +158,7 @@ const DealDetail = () => {
               <div className="flex-1">
                 <div className="flex items-center gap-2 mb-2">
                   <Badge className="bg-destructive text-destructive-foreground">{deal.discount_value}</Badge>
-                  <Badge variant="outline">{getExpiryText(deal.end_date || "", (deal as any).is_perpetual)}</Badge>
+                  <Badge variant="outline">{getExpiryText(deal.expiry_date || "", (deal as any).is_perpetual)}</Badge>
                 </div>
                 <h1 className="text-3xl font-bold mb-2 text-card-foreground">{deal.title}</h1>
                 <p className="text-lg text-muted-foreground">{deal.business_name}</p>
@@ -195,7 +225,7 @@ const DealDetail = () => {
                   <span className="text-muted-foreground">
                     {(deal as any).is_perpetual
                       ? "This deal never expires"
-                      : `Valid from ${format(parseISO(deal.start_date || ""), "MMM d, yyyy")} to ${format(parseISO(deal.end_date || ""), "MMM d, yyyy")}`
+                      : `Valid from ${format(parseISO(deal.start_date || ""), "MMM d, yyyy")} to ${format(parseISO(deal.expiry_date || ""), "MMM d, yyyy")}`
                     }
                   </span>
                 </div>
@@ -239,6 +269,63 @@ const DealDetail = () => {
                 {claimDeal.isPending ? <Loader2 className="h-4 w-4 animate-spin mr-2" /> : <Ticket className="h-4 w-4 mr-2" />}
                 Claim Deal
               </Button>
+            </div>
+
+            <Separator className="my-8" />
+
+            {/* Reviews Section */}
+            <div className="space-y-8">
+              <div>
+                <h3 className="font-semibold text-xl mb-4 text-card-foreground">Customer Reviews</h3>
+                {ratings && ratings.length > 0 ? (
+                  <div className="space-y-4">
+                    {ratings.map((r: any) => (
+                      <div key={r.id} className="bg-muted/30 p-4 rounded-lg">
+                        <div className="flex justify-between items-center mb-2">
+                          <span className="font-semibold">{r.User?.full_name || "Customer"}</span>
+                          <div className="flex gap-0.5">
+                            {[...Array(5)].map((_, i) => (
+                              <Star key={i} className={`h-4 w-4 ${i < r.rating ? "fill-primary text-primary" : "text-muted-foreground"}`} />
+                            ))}
+                          </div>
+                        </div>
+                        <p className="text-sm text-muted-foreground">{r.comment}</p>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="text-muted-foreground italic">No reviews yet. Be the first to review!</p>
+                )}
+              </div>
+
+              {user && (
+                <form onSubmit={handleReviewSubmit} className="space-y-4 bg-muted/20 p-6 rounded-xl border border-border">
+                  <h4 className="font-semibold">Write a Review</h4>
+                  <div className="flex gap-2 mb-2">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        onClick={() => setUserRating(star)}
+                        className="focus:outline-none"
+                      >
+                        <Star className={`h-6 w-6 ${star <= userRating ? "fill-primary text-primary" : "text-muted-foreground hover:text-primary/50"}`} />
+                      </button>
+                    ))}
+                  </div>
+                  <Textarea
+                    placeholder="Share your experience with this business..."
+                    value={userComment}
+                    onChange={(e) => setUserComment(e.target.value)}
+                    required
+                    rows={3}
+                  />
+                  <Button type="submit" disabled={isSubmittingReview || !userComment}>
+                    {isSubmittingReview && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                    Submit Review
+                  </Button>
+                </form>
+              )}
             </div>
           </CardContent>
         </Card>

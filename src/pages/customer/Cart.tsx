@@ -11,9 +11,9 @@ const Cart = () => {
   const { user, loading: authLoading } = useAuth();
   const { cartItems, isLoading, removeFromCart, clearCart } = useCart();
 
-  const getExpiryText = (endDate: string, isPerpetual: boolean): string => {
+  const getExpiryText = (expiryDate: string, isPerpetual: boolean): string => {
     if (isPerpetual) return "Never expires";
-    const days = differenceInDays(parseISO(endDate), new Date());
+    const days = differenceInDays(parseISO(expiryDate), new Date());
     if (days < 0) return "Expired";
     if (days === 0) return "Ends today";
     if (days === 1) return "1 day left";
@@ -129,7 +129,7 @@ const Cart = () => {
                             {item.deal?.discount_value}
                           </Badge>
                           <Badge variant="outline">
-                            {item.deal ? getExpiryText(item.deal.end_date, item.deal.is_perpetual) : ""}
+                            {item.deal ? getExpiryText(item.deal.expiry_date, item.deal.is_perpetual) : ""}
                           </Badge>
                         </div>
                         <h3 className="font-bold text-lg">{item.deal?.title}</h3>

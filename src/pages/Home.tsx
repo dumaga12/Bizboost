@@ -209,7 +209,7 @@ const Home = () => {
                         </div>
                       </div>
                       <div className="flex flex-col items-end gap-1">
-                        <Badge variant="outline">{getExpiryText(deal.end_date, (deal as any).is_perpetual)}</Badge>
+                        <Badge variant="outline">{getExpiryText(deal.expiry_date, (deal as any).is_perpetual)}</Badge>
                         <Button
                           variant="ghost"
                           size="icon"

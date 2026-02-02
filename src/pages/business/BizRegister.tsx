@@ -18,6 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const BizRegister = () => {
   const navigate = useNavigate();
+  const { signUp, signIn, updateToken, user } = useAuth();
   const { toast } = useToast();
   const { signUp, user } = useAuth();
 
@@ -68,6 +69,10 @@ const BizRegister = () => {
   };
 
   const handleSubmit = async () => {
+    if (!formData.password || !formData.confirmPassword) {
+      toast({ title: "Error", description: "Please enter a password", variant: "destructive" });
+      return;
+    }
     if (formData.password !== formData.confirmPassword) {
       toast({
         title: "Error",
@@ -79,56 +84,58 @@ const BizRegister = () => {
 
     setIsLoading(true);
 
-    const { error } = await signUp(
-      formData.email,
-      formData.password,
-      formData.businessName
-    );
+    // 1. Sign up the user
+    // The signUp function from AuthContext expects (email, password, name)
+    const { error: signUpError } = await signUp(formData.email, formData.password, formData.businessName);
 
-    if (error) {
+    if (signUpError) {
       setIsLoading(false);
-      toast({
-        title: "Error",
-        description: error.message || "Signup failed",
-        variant: "destructive",
-      });
-      return;
-    }
+
+      if (!res.ok) {
+        toast({ title: "Error", description: data.message || "Failed to register business", variant: "destructive" });
+        return;
+      }
+
+    // 2. Create the business profile
+    // Note: The backend registration endpoint likely handles user creation + business profile creation
+    // If not, we should have a dedicated endpoint for this.
+    // Assuming /auth/register creates the user, we then need to create the business profile.
+
+    // However, if the user is already logged in (from step 1), we can just create the business.
+    // Let's assume the user is logged in automatically or we rely on the auth context user.
 
     if (!user) {
+      // If signUp didn't automatically login or set user context immediately, we might need to wait or manual login.
+      // But let's try to create the business profile associated with the current user context if available
+      // OR, better yet, the previous signUp call should have handled it.
+
+      // Looking at AuthContext, signUp just calls /auth/register.
+      // We might need to call a separate endpoint to register the business details.
       setIsLoading(false);
-      toast({
-        title: "Error",
-        description: "User not found after signup",
-        variant: "destructive",
-      });
+      toast({ title: "Error", description: "User not found after registration. Please try again.", variant: "destructive" });
       return;
     }
 
-    try {
-      await api.post("/businesses", {
+      // Wait a moment for auth state to update
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // 3. Create the business profile
+      const { data } = await api.post("/business", {
         business_name: formData.businessName,
         phone: formData.phone,
         address: formData.address,
         description: formData.description,
-        user_id: user.id,
+        user_id: user?.id // or handle if user is not yet set in context
       });
-
-      toast({
-        title: "Success",
-        description: "Business registered successfully!",
-      });
-
-      navigate("/business/dashboard");
-    } catch (err) {
-      toast({
-        title: "Error",
-        description: err.response?.data?.message || err.message,
-        variant: "destructive",
-      });
-    } finally {
+    } catch (bizError: any) {
       setIsLoading(false);
+      toast({ title: "Error", description: bizError.response?.data?.message || bizError.message, variant: "destructive" });
+      return;
     }
+
+    setIsLoading(false);
+    toast({ title: "Success", description: "Business registered successfully!" });
+    navigate("/business/dashboard");
   };
 
   return (
@@ -145,6 +152,21 @@ const BizRegister = () => {
           <CardHeader>
             <CardTitle>Register Your Business</CardTitle>
             <CardDescription>Step {step} of 3</CardDescription>
+
+            { }
+            <div className="flex items-center gap-2 mt-4">
+              <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                {step > 1 ? <Check className="h-4 w-4" /> : '1'}
+              </div>
+              <div className={`h-1 flex-1 ${step >= 2 ? 'bg-primary' : 'bg-muted'}`} />
+              <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 2 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                {step > 2 ? <Check className="h-4 w-4" /> : '2'}
+              </div>
+              <div className={`h-1 flex-1 ${step >= 3 ? 'bg-primary' : 'bg-muted'}`} />
+              <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 3 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
+                3
+              </div>
+            </div>
           </CardHeader>
 
           <CardContent className="space-y-4">
@@ -173,18 +195,25 @@ const BizRegister = () => {
 
             {step === 2 && (
               <>
-                <Input
-                  placeholder="Address"
-                  value={formData.address}
-                  onChange={(e) => handleChange("address", e.target.value)}
-                />
-                <Textarea
-                  placeholder="Description"
-                  value={formData.description}
-                  onChange={(e) =>
-                    handleChange("description", e.target.value)
-                  }
-                />
+                <div className="space-y-2">
+                  <Label htmlFor="address">Business Address</Label>
+                  <Input
+                    id="address"
+                    placeholder="eg wuse2, okocha close, plot 1 "
+                    value={formData.address}
+                    onChange={(e) => handleChange("address", e.target.value)}
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="description">Business Description</Label>
+                  <Textarea
+                    id="description"
+                    placeholder="Tell customers about your business..."
+                    rows={4}
+                    value={formData.description}
+                    onChange={(e) => handleChange("description", e.target.value)}
+                  />
+                </div>
               </>
             )}
 

@@ -13,7 +13,7 @@ export interface Deal {
   image_url: string | null;
   terms_conditions: string | null;
   start_date: string;
-  end_date: string;
+  expiry_date: string;
   status: string;
   view_count: number;
   created_at: string;
@@ -99,12 +99,16 @@ export const useBusinessDeals = (businessId: string | undefined) => {
 
 export const useWishlist = () => {
   const queryClient = useQueryClient();
+  const token = localStorage.getItem("token"); // Simple check for now, or use AuthContext if preferred
+
   const query = useQuery({
     queryKey: ["wishlist"],
     queryFn: async () => {
       const { data } = await api.get("/wishlist");
       return data;
     },
+    enabled: !!token, // Only fetch if token exists
+    retry: false,
   });
 
   const addToWishlist = useMutation({

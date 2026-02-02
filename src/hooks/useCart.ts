@@ -17,7 +17,7 @@ export interface CartItem {
     discount_value: string;
     image_url: string | null;
     business_name: string | null;
-    end_date: string;
+    expiry_date: string;
     is_perpetual: boolean;
   };
 }

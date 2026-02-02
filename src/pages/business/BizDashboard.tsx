@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -10,33 +11,17 @@ import { useBusinessDeals, Deal } from "@/hooks/useDeals";
 import api from "@/api/axios";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-
-interface Deal {
-  id: string;
-  title: string;
-  status: "active" | "draft" | "expired";
-  view_count: number;
-  end_date: string;
-}
-
-const fetchDeals = async (businessId: string) => {
-  const res = await fetch(`${import.meta.env.VITE_API_URL}/business/${businessId}/deals`);
-  if (!res.ok) throw new Error("Failed to fetch deals");
-  return res.json() as Promise<Deal[]>;
-};
+import { useQueryClient } from "@tanstack/react-query";
 
 const BizDashboard = () => {
   const navigate = useNavigate();
   const { user, business, loading: authLoading, signOut } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [redemptionCode, setRedemptionCode] = useState("");
+  const [isRedeeming, setIsRedeeming] = useState(false);
 
-  const { data: deals, isLoading: dealsLoading } = useQuery({
-    queryKey: ["business-deals", business?.id],
-    queryFn: () => fetchDeals(business!.id),
-    enabled: !!business,
-  });
+  const { data: deals, isLoading: dealsLoading } = useBusinessDeals(business?.id);
 
   useEffect(() => {
     if (!authLoading && !user) navigate("/business/login");
@@ -47,15 +32,33 @@ const BizDashboard = () => {
     try {
       await api.delete(`/deals/${dealId}`);
       toast({ title: "Success", description: "Deal deleted" });
-      queryClient.invalidateQueries({ queryKey: ["business-deals"] });
-    } catch (error: any) {
-      toast({ title: "Error", description: error.response?.data?.error || error.message, variant: "destructive" });
+      queryClient.invalidateQueries({ queryKey: ["business-deals", business?.id] });
+    } catch (err: any) {
+      toast({
+        title: "Error",
+        description: err.response?.data?.error || err.message,
+        variant: "destructive"
+      });
     }
   };
 
   const handleLogout = async () => {
     await signOut();
     navigate("/");
+  };
+
+  const handleRedeem = async () => {
+    if (!redemptionCode) return;
+    setIsRedeeming(true);
+    try {
+      const { data } = await api.post(`/deal-claims/redeem/${redemptionCode}`);
+      toast({ title: "Success", description: data.message });
+      setRedemptionCode("");
+    } catch (error: any) {
+      toast({ title: "Error", description: error.response?.data?.message || error.message, variant: "destructive" });
+    } finally {
+      setIsRedeeming(false);
+    }
   };
 
   const getStatusColor = (deal: Deal): "default" | "secondary" | "destructive" => {
@@ -82,7 +85,6 @@ const BizDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      { }
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div>
@@ -105,7 +107,6 @@ const BizDashboard = () => {
       </header>
 
       <div className="container mx-auto px-4 py-8">
-        { }
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {stats.map(stat => (
             <Card key={stat.label}>
@@ -120,7 +121,27 @@ const BizDashboard = () => {
           ))}
         </div>
 
-        { }
+        {/* Redemption Section */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="text-lg">Redeem Discount Code</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-4">
+              <Input
+                placeholder="Enter customer code (e.g. BZ-XXXXXX)"
+                value={redemptionCode}
+                onChange={(e) => setRedemptionCode(e.target.value)}
+                className="max-w-md"
+              />
+              <Button onClick={handleRedeem} disabled={isRedeeming}>
+                {isRedeeming && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Redeem Code
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
             <CardTitle>Your Deals</CardTitle>
@@ -149,7 +170,7 @@ const BizDashboard = () => {
                         <Badge variant={getStatusColor(deal)}>{deal.status}</Badge>
                       </TableCell>
                       <TableCell>{deal.view_count}</TableCell>
-                      <TableCell>{format(parseISO(deal.end_date), "MMM d, yyyy")}</TableCell>
+                      <TableCell>{deal.expiry_date ? format(parseISO(deal.expiry_date), "MMM d, yyyy") : "N/A"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Link to={`/business/deals/${deal.id}/edit`}>
