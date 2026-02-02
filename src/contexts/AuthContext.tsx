@@ -19,9 +19,10 @@ interface AuthContextType {
   user: User | null;
   business: Business | null;
   loading: boolean;
-  signUp: (email: string, password: string, name: string) => Promise<{ error: any }>;
+  signUp: (email: string, password: string, name: string, role?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
+  updateToken: (token: string, user: User) => void;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -57,9 +58,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     }
   };
 
-  const signUp = async (email: string, password: string, name: string) => {
+  const signUp = async (email: string, password: string, name: string, role?: string) => {
     try {
-      await api.post("/auth/register", { email, password, name });
+      await api.post("/auth/register", { email, password, name, role });
       return { error: null };
     } catch (error: any) {
       return { error: error.response?.data?.message || error.message };
@@ -88,8 +89,17 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setBusiness(null);
   };
 
+  const updateToken = (token: string, updatedUser: User) => {
+    localStorage.setItem("token", token);
+    localStorage.setItem("user", JSON.stringify(updatedUser));
+    setUser(updatedUser);
+    if (updatedUser.role === "business") {
+      fetchBusiness(updatedUser.id);
+    }
+  };
+
   return (
-    <AuthContext.Provider value={{ user, business, loading, signUp, signIn, signOut }}>
+    <AuthContext.Provider value={{ user, business, loading, signUp, signIn, signOut, updateToken }}>
       {children}
     </AuthContext.Provider>
   );

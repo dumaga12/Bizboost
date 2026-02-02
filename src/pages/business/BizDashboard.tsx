@@ -1,6 +1,7 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -18,6 +19,8 @@ const BizDashboard = () => {
   const { data: deals, isLoading: dealsLoading } = useBusinessDeals(business?.id);
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const [redemptionCode, setRedemptionCode] = useState("");
+  const [isRedeeming, setIsRedeeming] = useState(false);
 
   useEffect(() => {
     if (!authLoading && !user) {
@@ -41,6 +44,20 @@ const BizDashboard = () => {
   const handleLogout = async () => {
     await signOut();
     navigate("/");
+  };
+
+  const handleRedeem = async () => {
+    if (!redemptionCode) return;
+    setIsRedeeming(true);
+    try {
+      const { data } = await api.post(`/deal-claims/redeem/${redemptionCode}`);
+      toast({ title: "Success", description: data.message });
+      setRedemptionCode("");
+    } catch (error: any) {
+      toast({ title: "Error", description: error.response?.data?.message || error.message, variant: "destructive" });
+    } finally {
+      setIsRedeeming(false);
+    }
   };
 
   const getStatusColor = (deal: Deal): "default" | "secondary" | "destructive" => {
@@ -109,7 +126,26 @@ const BizDashboard = () => {
           ))}
         </div>
 
-        { }
+        {/* Redemption Section */}
+        <Card className="mb-8">
+          <CardHeader>
+            <CardTitle className="text-lg">Redeem Discount Code</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="flex gap-4">
+              <Input
+                placeholder="Enter customer code (e.g. BZ-XXXXXX)"
+                value={redemptionCode}
+                onChange={(e) => setRedemptionCode(e.target.value)}
+                className="max-w-md"
+              />
+              <Button onClick={handleRedeem} disabled={isRedeeming}>
+                {isRedeeming && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                Redeem Code
+              </Button>
+            </div>
+          </CardContent>
+        </Card>
         <Card>
           <CardHeader>
             <CardTitle>Your Deals</CardTitle>
@@ -140,7 +176,7 @@ const BizDashboard = () => {
                         </Badge>
                       </TableCell>
                       <TableCell>{deal.view_count}</TableCell>
-                      <TableCell>{format(parseISO(deal.end_date), "MMM d, yyyy")}</TableCell>
+                      <TableCell>{deal.expiry_date ? format(parseISO(deal.expiry_date), "MMM d, yyyy") : "N/A"}</TableCell>
                       <TableCell className="text-right">
                         <div className="flex justify-end gap-2">
                           <Link to={`/business/deals/${deal.id}/edit`}>

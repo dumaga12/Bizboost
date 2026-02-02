@@ -81,7 +81,7 @@ const PostDealForm = () => {
         discount_type: formData.discount_type,
         discount_value: formData.discount_value,
         start_date: formData.start_date,
-        end_date: endDate,
+        expiry_date: endDate,
         terms_conditions: formData.terms_conditions || null,
         image_url: formData.image_url || null,
         status: status,

@@ -13,7 +13,7 @@ export interface Deal {
   image_url: string | null;
   terms_conditions: string | null;
   start_date: string;
-  end_date: string;
+  expiry_date: string;
   status: string;
   view_count: number;
   created_at: string;
@@ -108,6 +108,7 @@ export const useWishlist = () => {
       return data;
     },
     enabled: !!token, // Only fetch if token exists
+    retry: false,
   });
 
   const addToWishlist = useMutation({

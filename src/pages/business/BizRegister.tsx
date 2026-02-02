@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const BizRegister = () => {
   const navigate = useNavigate();
-  const { signUp, user, business, loading: authLoading } = useAuth();
+  const { signUp, signIn, user, business, loading: authLoading, updateToken } = useAuth();
   const { toast } = useToast();
 
   const [step, setStep] = useState(1);
@@ -77,7 +77,8 @@ const BizRegister = () => {
     setIsLoading(true);
 
     // 1. Sign up the user
-    const { error: signUpError } = await signUp(formData.email, formData.password, formData.businessName);
+    // We pass "business" role so the user is created with the correct permissions.
+    const { error: signUpError } = await signUp(formData.email, formData.password, formData.businessName, "business");
 
     if (signUpError) {
       setIsLoading(false);
@@ -86,7 +87,7 @@ const BizRegister = () => {
     }
 
     // 2. Sign in immediately to get the token and user ID
-    const { error: signInError } = await useAuth().signIn(formData.email, formData.password);
+    const { error: signInError } = await signIn(formData.email, formData.password);
 
     if (signInError) {
       setIsLoading(false);
@@ -103,12 +104,18 @@ const BizRegister = () => {
     // the backend will identify us using req.user.id.
 
     try {
-      await api.post("/business", {
+      const { data } = await api.post("/business", {
         business_name: formData.businessName,
         phone: formData.phone,
         address: formData.address,
         description: formData.description,
       });
+
+      // Update token if returned (backend now returns new token with business role)
+      if (data.token) {
+        updateToken(data.token, { ...user!, role: "business" });
+      }
+
     } catch (bizError: any) {
       setIsLoading(false);
       toast({ title: "Error", description: bizError.response?.data?.message || bizError.message, variant: "destructive" });
