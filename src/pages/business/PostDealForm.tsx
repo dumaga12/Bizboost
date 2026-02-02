@@ -30,7 +30,7 @@ const PostDealForm = () => {
     discount_type: "percentage",
     discount_value: "",
     start_date: "",
-    end_date: "",
+    expiry_date: "",
     terms_conditions: "",
     image_url: "",
     status: "active",
@@ -61,16 +61,16 @@ const PostDealForm = () => {
       return;
     }
 
-    // Validate end date if not perpetual
-    if (!formData.is_perpetual && !formData.end_date) {
-      toast({ title: "Error", description: "Please set an end date or mark as never expires", variant: "destructive" });
+    // Validate expiry date if not perpetual
+    if (!formData.is_perpetual && !formData.expiry_date) {
+      toast({ title: "Error", description: "Please set an expiry date or mark as never expires", variant: "destructive" });
       return;
     }
 
     setIsSubmitting(true);
 
-    // For perpetual deals, set end_date far in the future
-    const endDate = formData.is_perpetual ? "2099-12-31" : formData.end_date;
+    // For perpetual deals, set expiry_date far in the future
+    const expiryDate = formData.is_perpetual ? "2099-12-31" : formData.expiry_date;
 
     try {
       await api.post("/deals", {
@@ -81,7 +81,7 @@ const PostDealForm = () => {
         discount_type: formData.discount_type,
         discount_value: formData.discount_value,
         start_date: formData.start_date,
-        expiry_date: endDate,
+        expiry_date: expiryDate,
         terms_conditions: formData.terms_conditions || null,
         image_url: formData.image_url || null,
         status: status,
@@ -217,12 +217,12 @@ const PostDealForm = () => {
 
             {!formData.is_perpetual && (
               <div className="space-y-2">
-                <Label htmlFor="end-date">End Date *</Label>
+                <Label htmlFor="expiry-date">Expiry Date *</Label>
                 <Input
-                  id="end-date"
+                  id="expiry-date"
                   type="date"
-                  value={formData.end_date}
-                  onChange={(e) => handleChange("end_date", e.target.value)}
+                  value={formData.expiry_date}
+                  onChange={(e) => handleChange("expiry_date", e.target.value)}
                 />
               </div>
             )}

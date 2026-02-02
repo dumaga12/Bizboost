@@ -24,9 +24,9 @@ const BrowseAll = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const itemsPerPage = 6;
 
-  const { data: deals, isLoading: dealsLoading } = useDeals({ 
-    search: searchQuery, 
-    sortBy 
+  const { data: deals, isLoading: dealsLoading } = useDeals({
+    search: searchQuery,
+    sortBy
   });
   const { data: categories, isLoading: categoriesLoading } = useCategories();
   const { user } = useAuth();
@@ -73,13 +73,13 @@ const BrowseAll = () => {
     return isNaN(numericValue) ? 0 : numericValue;
   };
 
-  const getDaysLeft = (endDate: string): number => {
-    return differenceInDays(parseISO(endDate), new Date());
+  const getDaysLeft = (expiryDate: string): number => {
+    return differenceInDays(parseISO(expiryDate), new Date());
   };
 
-  const getExpiryText = (endDate: string, isPerpetual?: boolean): string => {
+  const getExpiryText = (expiryDate: string, isPerpetual?: boolean): string => {
     if (isPerpetual) return "Never expires";
-    const days = getDaysLeft(endDate);
+    const days = getDaysLeft(expiryDate);
     if (days < 0) return "Expired";
     if (days === 0) return "Ends today";
     if (days === 1) return "1 day left";
@@ -90,7 +90,7 @@ const BrowseAll = () => {
 
   const filteredDeals = useMemo(() => {
     if (!deals) return [];
-    
+
     let result = [...deals];
 
     // Filter by selected categories
@@ -151,8 +151,8 @@ const BrowseAll = () => {
           <div className="flex gap-2 max-w-2xl">
             <div className="relative flex-1">
               <Search className="absolute left-3 top-3 h-5 w-5 text-muted-foreground" />
-              <Input 
-                placeholder="Search deals..." 
+              <Input
+                placeholder="Search deals..."
                 className="pl-10 h-12"
                 value={searchInput}
                 onChange={(e) => setSearchInput(e.target.value)}
@@ -170,7 +170,7 @@ const BrowseAll = () => {
               {isLoading ? "Loading..." : `${filteredDeals.length} deals found`}
             </p>
           </div>
-          
+
           <div className="flex items-center gap-4">
             <Select value={sortBy} onValueChange={(value) => { setSortBy(value); setCurrentPage(1); }}>
               <SelectTrigger className="w-[180px]">
@@ -206,8 +206,8 @@ const BrowseAll = () => {
                     <div className="space-y-2">
                       {categories?.map((category) => (
                         <div key={category.id} className="flex items-center space-x-2">
-                          <Checkbox 
-                            id={category.id} 
+                          <Checkbox
+                            id={category.id}
                             checked={selectedCategories.includes(category.id)}
                             onCheckedChange={(checked) => handleCategoryChange(category.id, checked as boolean)}
                           />
@@ -226,8 +226,8 @@ const BrowseAll = () => {
                     <div className="space-y-2">
                       {discountRanges.map((range) => (
                         <div key={range.label} className="flex items-center space-x-2">
-                          <Checkbox 
-                            id={range.label} 
+                          <Checkbox
+                            id={range.label}
                             checked={selectedDiscount === range.label}
                             onCheckedChange={(checked) => handleDiscountChange(range.label, checked as boolean)}
                           />
@@ -268,8 +268,8 @@ const BrowseAll = () => {
                 <Card className="hover:shadow-lg transition-shadow cursor-pointer overflow-hidden h-full">
                   <div className="h-40 overflow-hidden bg-muted">
                     {deal.image_url ? (
-                      <img 
-                        src={deal.image_url} 
+                      <img
+                        src={deal.image_url}
                         alt={deal.title}
                         className="w-full h-full object-cover transition-transform hover:scale-105"
                       />
@@ -284,7 +284,7 @@ const BrowseAll = () => {
                       <Badge className="bg-destructive text-destructive-foreground">
                         {deal.discount_value}
                       </Badge>
-                      <Badge variant="outline">{getExpiryText(deal.end_date, deal.is_perpetual)}</Badge>
+                      <Badge variant="outline">{getExpiryText(deal.expiry_date, deal.is_perpetual)}</Badge>
                     </div>
                   </CardHeader>
                   <CardContent>
@@ -295,7 +295,7 @@ const BrowseAll = () => {
                     )}
                   </CardContent>
                   <CardFooter>
-                    <Button 
+                    <Button
                       className="w-full"
                       variant={isInCart(deal.id) ? "secondary" : "default"}
                       onClick={(e) => handleAddToCart(e, deal.id)}
@@ -313,15 +313,15 @@ const BrowseAll = () => {
         {/* Pagination */}
         {totalPages > 1 && (
           <div className="flex justify-center gap-2 mt-8">
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               disabled={currentPage === 1}
               onClick={() => setCurrentPage(currentPage - 1)}
             >
               Previous
             </Button>
             {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-              <Button 
+              <Button
                 key={page}
                 variant={currentPage === page ? "default" : "outline"}
                 onClick={() => setCurrentPage(page)}
@@ -329,8 +329,8 @@ const BrowseAll = () => {
                 {page}
               </Button>
             ))}
-            <Button 
-              variant="outline" 
+            <Button
+              variant="outline"
               disabled={currentPage === totalPages}
               onClick={() => setCurrentPage(currentPage + 1)}
             >
