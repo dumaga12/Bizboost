@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import api from "@/api/axios";
 import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -12,7 +12,7 @@ import { useToast } from "@/hooks/use-toast";
 
 const BizRegister = () => {
   const navigate = useNavigate();
-  const { signUp, signIn, user, business, loading: authLoading, updateToken } = useAuth();
+  const { signUp, signIn, updateToken, user } = useAuth();
   const { toast } = useToast();
 
   const [step, setStep] = useState(1);
@@ -26,12 +26,6 @@ const BizRegister = () => {
     password: "",
     confirmPassword: "",
   });
-
-  useEffect(() => {
-    if (!authLoading && user && business) {
-      navigate("/business/dashboard");
-    }
-  }, [user, business, authLoading, navigate]);
 
   const handleChange = (field: string, value: string) => {
     setFormData(prev => ({ ...prev, [field]: value }));
@@ -53,9 +47,7 @@ const BizRegister = () => {
   };
 
   const handleNext = () => {
-    if (validateStep(step)) {
-      setStep(step + 1);
-    }
+    if (validateStep(step)) setStep(step + 1);
   };
 
   const handleSubmit = async () => {
@@ -68,7 +60,6 @@ const BizRegister = () => {
       toast({ title: "Error", description: "Passwords do not match", variant: "destructive" });
       return;
     }
-
     if (formData.password.length < 6) {
       toast({ title: "Error", description: "Password must be at least 6 characters", variant: "destructive" });
       return;
@@ -76,34 +67,30 @@ const BizRegister = () => {
 
     setIsLoading(true);
 
-    // 1. Sign up the user
-    // We pass "business" role so the user is created with the correct permissions.
-    const { error: signUpError } = await signUp(formData.email, formData.password, formData.businessName, "business");
-
-    if (signUpError) {
-      setIsLoading(false);
-      toast({ title: "Error", description: signUpError.message, variant: "destructive" });
-      return;
-    }
-
-    // 2. Sign in immediately to get the token and user ID
-    const { error: signInError } = await signIn(formData.email, formData.password);
-
-    if (signInError) {
-      setIsLoading(false);
-      toast({ title: "Error", description: "Registration successful, but failed to log in. Please log in manually.", variant: "destructive" });
-      navigate("/business/login");
-      return;
-    }
-
-    // Wait a moment for auth state to update
-    await new Promise(resolve => setTimeout(resolve, 500));
-
-    // 2. Create the business profile
-    // Since we are authenticated via the token we just got from signIn, 
-    // the backend will identify us using req.user.id.
-
     try {
+      // 1. Sign up the user
+      const { error: signUpError } = await signUp(formData.email, formData.password, formData.businessName, "business");
+
+      if (signUpError) {
+        setIsLoading(false);
+        toast({ title: "Error", description: signUpError as string || "Failed to register business", variant: "destructive" });
+        return;
+      }
+
+      // 2. Sign in immediately to get the token and user ID
+      const { error: signInError } = await signIn(formData.email, formData.password);
+
+      if (signInError) {
+        setIsLoading(false);
+        toast({ title: "Error", description: "Registration successful, but failed to log in. Please log in manually.", variant: "destructive" });
+        navigate("/business/login");
+        return;
+      }
+
+      // Wait a moment for auth state to update
+      await new Promise(resolve => setTimeout(resolve, 500));
+
+      // 3. Create the business profile
       const { data } = await api.post("/business", {
         business_name: formData.businessName,
         phone: formData.phone,
@@ -112,19 +99,18 @@ const BizRegister = () => {
       });
 
       // Update token if returned (backend now returns new token with business role)
-      if (data.token) {
+      if (data.token && user) {
         updateToken(data.token, { ...user!, role: "business" });
       }
 
-    } catch (bizError: any) {
       setIsLoading(false);
-      toast({ title: "Error", description: bizError.response?.data?.message || bizError.message, variant: "destructive" });
-      return;
-    }
+      toast({ title: "Success", description: "Business registered successfully!" });
+      navigate("/business/dashboard");
 
-    setIsLoading(false);
-    toast({ title: "Success", description: "Business registered successfully!" });
-    navigate("/business/dashboard");
+    } catch (error: any) {
+      setIsLoading(false);
+      toast({ title: "Error", description: error.response?.data?.message || error.message || "Something went wrong", variant: "destructive" });
+    }
   };
 
   return (
@@ -142,7 +128,6 @@ const BizRegister = () => {
             <CardTitle className="text-2xl">Register Your Business</CardTitle>
             <CardDescription>Step {step} of 3</CardDescription>
 
-            { }
             <div className="flex items-center gap-2 mt-4">
               <div className={`flex items-center justify-center w-8 h-8 rounded-full ${step >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground'}`}>
                 {step > 1 ? <Check className="h-4 w-4" /> : '1'}

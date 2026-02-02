@@ -28,26 +28,23 @@ const CustomerLogin = () => {
       return;
     }
 
-setIsLoading(true);
+    setIsLoading(true);
+    const { error } = await signIn(email, password);
+    setIsLoading(false);
 
-try {
-  await registerCustomer({ name, email, password });
-
-  toast({
-    title: "Account created!",
-    description: "You can now sign in to your account",
-  });
-
-  navigate("/customer/login");
-} catch (err: any) {
-  toast({
-    title: "Registration failed",
-    description: err.response?.data?.message || "Something went wrong",
-    variant: "destructive",
-  });
-} finally {
-  setIsLoading(false);
-}
+    if (error) {
+      toast({
+        title: "Login failed",
+        description: error.message,
+        variant: "destructive",
+      });
+    } else {
+      toast({
+        title: "Welcome back!",
+        description: "You have successfully logged in",
+      });
+      navigate("/");
+    }
   };
 
   return (
