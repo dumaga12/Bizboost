@@ -24,7 +24,6 @@ export interface CartItem {
 export const useCart = () => {
   const { user } = useAuth();
   const queryClient = useQueryClient();
-  const { toast } = useToast();
 
   const cartQuery = useQuery({
     queryKey: ["cart", user?.id],
@@ -46,7 +45,7 @@ export const useCart = () => {
       queryClient.invalidateQueries({ queryKey: ["cart", user?.id] });
       toast.success("Added to cart");
     },
-    onError: (error: any) => {
+    onError: (error: Error) => {
       toast.error(error.message || "Failed to add to cart");
     },
   });

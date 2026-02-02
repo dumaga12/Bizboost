@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Eye, TrendingUp, Plus, Edit, Trash2, Loader2, LogOut } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useBusinessDeals, Deal } from "@/hooks/useDeals";
-import { supabase } from "@/integrations/supabase/client";
+import api from "@/api/axios";
 import { useToast } from "@/hooks/use-toast";
 import { format, parseISO } from "date-fns";
 import { useQueryClient } from "@tanstack/react-query";
@@ -29,13 +29,12 @@ const BizDashboard = () => {
   }, [user, business, authLoading, navigate]);
 
   const handleDelete = async (dealId: string) => {
-    const { error } = await supabase.from("deals").delete().eq("id", dealId);
-    
-    if (error) {
-      toast({ title: "Error", description: error.message, variant: "destructive" });
-    } else {
+    try {
+      await api.delete(`/deals/${dealId}`);
       toast({ title: "Success", description: "Deal deleted" });
       queryClient.invalidateQueries({ queryKey: ["business-deals"] });
+    } catch (error: any) {
+      toast({ title: "Error", description: error.response?.data?.error || error.message, variant: "destructive" });
     }
   };
 
@@ -68,7 +67,7 @@ const BizDashboard = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {}
+      { }
       <header className="border-b border-border bg-card">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -93,7 +92,7 @@ const BizDashboard = () => {
       </header>
 
       <div className="container mx-auto px-4 py-8">
-        {}
+        { }
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           {stats.map((stat) => (
             <Card key={stat.label}>
@@ -110,7 +109,7 @@ const BizDashboard = () => {
           ))}
         </div>
 
-        {}
+        { }
         <Card>
           <CardHeader>
             <CardTitle>Your Deals</CardTitle>
