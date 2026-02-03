@@ -40,7 +40,10 @@
     "@radix-ui/react-toggle-group": "^1.1.10",
     "@radix-ui/react-tooltip": "^1.2.7",
     "@react-google-maps/api": "^2.20.8",
+<<<<<<< HEAD
     "@react-leaflet/core": "^2.1.0",
+=======
+>>>>>>> 0edb0779ae7c183ebb1ac392871b48f8868ba043
     "@tanstack/react-query": "^5.83.0",
     "axios": "^1.13.4",
     "class-variance-authority": "^0.7.1",
@@ -56,7 +59,10 @@
     "react-day-picker": "^8.10.1",
     "react-dom": "^18.3.1",
     "react-hook-form": "^7.61.1",
+<<<<<<< HEAD
     "react-leaflet": "^4.2.1",
+=======
+>>>>>>> 0edb0779ae7c183ebb1ac392871b48f8868ba043
     "react-resizable-panels": "^2.1.9",
     "react-router-dom": "^6.30.1",
     "recharts": "^2.15.4",
