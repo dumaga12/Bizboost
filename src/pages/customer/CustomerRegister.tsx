@@ -20,7 +20,7 @@ const CustomerRegister = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!name || !email || !password || !confirmPassword) {
       toast({
         title: "Error",
@@ -49,7 +49,7 @@ const CustomerRegister = () => {
     }
 
     setIsLoading(true);
-    const { error } = await signUp(email, password);
+    const { error } = await signUp(email, password, name);
     setIsLoading(false);
 
     if (error) {
@@ -86,8 +86,8 @@ const CustomerRegister = () => {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="name">Full Name</Label>
-                <Input 
-                  id="name" 
+                <Input
+                  id="name"
                   placeholder="John Doe"
                   value={name}
                   onChange={(e) => setName(e.target.value)}
@@ -96,9 +96,9 @@ const CustomerRegister = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="email">Email</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
+                <Input
+                  id="email"
+                  type="email"
                   placeholder="you@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -107,8 +107,8 @@ const CustomerRegister = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input 
-                  id="password" 
+                <Input
+                  id="password"
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
@@ -117,8 +117,8 @@ const CustomerRegister = () => {
               </div>
               <div className="space-y-2">
                 <Label htmlFor="confirm-password">Confirm Password</Label>
-                <Input 
-                  id="confirm-password" 
+                <Input
+                  id="confirm-password"
                   type="password"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
