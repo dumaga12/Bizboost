@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { Search, Tag, TrendingUp, Loader2, ShoppingCart, LogOut, User, Heart, Star, Map as MapIcon, Ticket, Coins } from "lucide-react";
+import { Search, Tag, TrendingUp, Loader2, ShoppingCart, LogOut, User, Heart, Star, Ticket, Coins } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card";
@@ -74,12 +74,6 @@ const Home = () => {
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <h1 className="text-2xl font-bold text-foreground">BizBoost</h1>
           <nav className="flex items-center gap-4">
-            <Link to="/customer/map">
-              <Button variant="ghost" className="hidden md:flex">
-                <MapIcon className="h-4 w-4 mr-2" />
-                Near Me
-              </Button>
-            </Link>
             <Link to="/browse">
               <Button variant="ghost">Browse Deals</Button>
             </Link>

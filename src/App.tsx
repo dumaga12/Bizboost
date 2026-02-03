@@ -11,7 +11,6 @@ import CustomerLogin from "./pages/customer/CustomerLogin";
 import CustomerRegister from "./pages/customer/CustomerRegister";
 import SavedDeals from "./pages/customer/SavedDeals";
 import MyClaims from "./pages/customer/MyClaims";
-import BrowseMap from "./pages/customer/BrowseMap";
 import Cart from "./pages/customer/Cart";
 import BizLogin from "./pages/business/BizLogin";
 import BizRegister from "./pages/business/BizRegister";
@@ -40,7 +39,6 @@ const App = () => (
             <Route path="/customer/register" element={<CustomerRegister />} />
             <Route path="/customer/saved" element={<SavedDeals />} />
             <Route path="/customer/claims" element={<MyClaims />} />
-            <Route path="/customer/map" element={<BrowseMap />} />
             <Route path="/customer/cart" element={<Cart />} />
 
             {/* Business Routes */}
