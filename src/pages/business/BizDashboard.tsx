@@ -15,7 +15,7 @@ import { useQueryClient } from "@tanstack/react-query";
 
 const BizDashboard = () => {
   const navigate = useNavigate();
-  const { user, business, loading: authLoading, signOut } = useAuth();
+  const { user, business, loading: authLoading, isFetchingBusiness, signOut } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const [redemptionCode, setRedemptionCode] = useState("");
@@ -24,9 +24,16 @@ const BizDashboard = () => {
   const { data: deals, isLoading: dealsLoading } = useBusinessDeals(business?.id);
 
   useEffect(() => {
-    if (!authLoading && !user) navigate("/business/login");
-    if (!authLoading && user && !business) navigate("/business/register");
-  }, [user, business, authLoading, navigate]);
+    if (authLoading || isFetchingBusiness) return;
+
+    if (!user) {
+      navigate("/business/login");
+    } else if (user.role === "business" && !business) {
+      navigate("/business/register");
+    } else if (user.role !== "business") {
+      navigate("/");
+    }
+  }, [user, business, authLoading, isFetchingBusiness, navigate]);
 
   const handleDelete = async (dealId: string) => {
     try {
@@ -75,7 +82,7 @@ const BizDashboard = () => {
     { label: "Active Deals", value: activeDeals.toString(), icon: TrendingUp },
   ];
 
-  if (authLoading) {
+  if (authLoading || isFetchingBusiness) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="h-8 w-8 animate-spin" />

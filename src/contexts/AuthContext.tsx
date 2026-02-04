@@ -19,6 +19,7 @@ interface AuthContextType {
   user: User | null;
   business: Business | null;
   loading: boolean;
+  isFetchingBusiness: boolean;
   signUp: (email: string, password: string, name: string, role?: string) => Promise<{ error: any }>;
   signIn: (email: string, password: string) => Promise<{ error: any }>;
   signOut: () => Promise<void>;
@@ -31,6 +32,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const [user, setUser] = useState<User | null>(null);
   const [business, setBusiness] = useState<Business | null>(null);
   const [loading, setLoading] = useState(true);
+  const [isFetchingBusiness, setIsFetchingBusiness] = useState(false);
 
   useEffect(() => {
     const initAuth = async () => {
@@ -40,7 +42,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         const parsedUser = JSON.parse(savedUser);
         setUser(parsedUser);
         if (parsedUser.role === "business") {
-          fetchBusiness(parsedUser.id);
+          setIsFetchingBusiness(true);
+          await fetchBusiness(parsedUser.id);
+          setIsFetchingBusiness(false);
         }
       }
       setLoading(false);
@@ -74,7 +78,9 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       localStorage.setItem("user", JSON.stringify(data.user));
       setUser(data.user);
       if (data.user.role === "business") {
-        fetchBusiness(data.user.id);
+        setIsFetchingBusiness(true);
+        await fetchBusiness(data.user.id);
+        setIsFetchingBusiness(false);
       }
       return { error: null };
     } catch (error: any) {
@@ -99,7 +105,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, business, loading, signUp, signIn, signOut, updateToken }}>
+    <AuthContext.Provider value={{ user, business, loading, isFetchingBusiness, signUp, signIn, signOut, updateToken }}>
       {children}
     </AuthContext.Provider>
   );

@@ -10,22 +10,31 @@ import { useToast } from "@/hooks/use-toast";
 
 const BizLogin = () => {
   const navigate = useNavigate();
-  const { signIn, user, business, loading: authLoading } = useAuth();
+  const { signIn, signOut, user, business, loading: authLoading } = useAuth();
   const { toast } = useToast();
-  
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    if (!authLoading && user && business) {
-      navigate("/business/dashboard");
+    if (!authLoading && user) {
+      if (user.role === "business") {
+        navigate("/business/dashboard");
+      } else {
+        toast({
+          title: "Access Denied",
+          description: "This portal is for businesses only.",
+          variant: "destructive"
+        });
+        signOut();
+      }
     }
-  }, [user, business, authLoading, navigate]);
+  }, [user, authLoading, navigate, signOut, toast]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    
+
     if (!email || !password) {
       toast({ title: "Error", description: "Please fill in all fields", variant: "destructive" });
       return;
@@ -62,19 +71,19 @@ const BizLogin = () => {
             <CardContent className="space-y-4">
               <div className="space-y-2">
                 <Label htmlFor="email">Business Email</Label>
-                <Input 
-                  id="email" 
-                  type="email" 
-                  placeholder="business@example.com" 
+                <Input
+                  id="email"
+                  type="email"
+                  placeholder="business@example.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
                 <Label htmlFor="password">Password</Label>
-                <Input 
-                  id="password" 
-                  type="password" 
+                <Input
+                  id="password"
+                  type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                 />
